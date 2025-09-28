@@ -30,6 +30,7 @@
     background:rgba(0,0,0,0.35); padding:8px 12px; border-radius:10px;
     backdrop-filter:blur(6px);
     font-size:13px;
+    max-height:90vh; overflow:auto;
   }
   .draw-controls {
     position:absolute; bottom:12px; right:12px; z-index:30;
@@ -37,6 +38,8 @@
     display:flex; flex-direction:column; gap:8px;
   }
   input[type="range"] { width:120px; }
+  .custom-rule { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .custom-rule button { background:#ef4444; color:#fff; border:none; border-radius:4px; padding:2px 6px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -51,6 +54,11 @@
     <label>Cube Size <input id="cubeSizeSlider" type="range" min="20" max="100" value="50"></label>
     <label>Render Scale <input id="renderScaleSlider" type="range" min="50" max="100" value="100"></label>
     <label><input type="checkbox" id="bloomToggle"> Bloom</label>
+
+    <hr>
+    <div><b>Custom Shapes</b></div>
+    <div id="customList"></div>
+    <button id="addCustomBtn">Add Custom</button>
   </div>
 
   <canvas id="gameCanvas"></canvas>
@@ -100,38 +108,60 @@
 
   // Cube model
   class Cube {
-    constructor(x,y,size,vx,vy,color){
+    constructor(x,y,size,vx,vy,color,shape="cube"){
       this.x=x; this.y=y; this.size=size;
       this.vx=vx; this.vy=vy;
       this.color=color;
+      this.shape=shape;
+
+      this.rotation = 0;
+      this.angularVel = (Math.random()-0.5)*2;
     }
     step(dt, boundsW, boundsH, lines){
       this.vy += GRAVITY * dt;
       this.x += this.vx * dt;
       this.y += this.vy * dt;
+      this.rotation += this.angularVel * dt;
 
       const r = this.size/2;
-      if(this.x-r<0){this.x=r;this.vx*=-0.8;}
-      if(this.x+r>boundsW){this.x=boundsW-r;this.vx*=-0.8;}
+      if(this.x-r<0){this.x=r;this.vx*=-0.8;this.angularVel*=-1;}
+      if(this.x+r>boundsW){this.x=boundsW-r;this.vx*=-0.8;this.angularVel*=-1;}
       if(this.y-r<0){this.y=r;this.vy*=-0.8;}
-      if(this.y+r>boundsH){this.y=boundsH-r;this.vy*=-0.7;this.vx*=0.98;}
+      if(this.y+r>boundsH){this.y=boundsH-r;this.vy*=-0.7;this.vx*=0.98;this.angularVel*=0.95;}
 
       // Check drawn lines
       for(let line of lines){
         if(lineCollision(this,line)){
           this.vy = -this.vy*0.7;
           this.vx *= 0.8;
+          this.angularVel += (Math.random()-0.5)*4;
         }
       }
     }
     draw(ctx){
       ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
       if(bloomEnabled){
         ctx.shadowBlur = 20;
         ctx.shadowColor = this.color;
       }
       ctx.fillStyle = this.color;
-      ctx.fillRect(this.x-this.size/2, this.y-this.size/2, this.size, this.size);
+      const r = this.size/2;
+      if(this.shape === "cube"){
+        ctx.fillRect(-r,-r,this.size,this.size);
+      } else if(this.shape === "circle"){
+        ctx.beginPath();
+        ctx.arc(0,0,r,0,Math.PI*2);
+        ctx.fill();
+      } else if(this.shape === "triangle"){
+        ctx.beginPath();
+        ctx.moveTo(0,-r);
+        ctx.lineTo(r,r);
+        ctx.lineTo(-r,r);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.restore();
     }
   }
@@ -150,6 +180,47 @@
   const palette=['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2'];
   let cubes=[];
   let lines=[];
+  let customRules=[];
+
+  function renderCustomRule(ruleObj){
+    const container = document.createElement("div");
+    container.className = "custom-rule";
+
+    const color = document.createElement("input");
+    color.type = "color";
+    color.value = "#ffffff";
+
+    const chance = document.createElement("input");
+    chance.type = "range";
+    chance.min = 0; chance.max = 100; chance.value = 50;
+
+    const shape = document.createElement("select");
+    ["cube","circle","triangle"].forEach(s=>{
+      const opt = document.createElement("option");
+      opt.value = s; opt.textContent = s;
+      shape.appendChild(opt);
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "❌";
+    delBtn.addEventListener("click", ()=>{
+      container.remove();
+      customRules = customRules.filter(r => r !== ruleObj);
+    });
+
+    container.append("Color:", color, " Chance:", chance, "% Shape:", shape, delBtn);
+    document.getElementById("customList").appendChild(container);
+
+    ruleObj.color=color;
+    ruleObj.chance=chance;
+    ruleObj.shape=shape;
+  }
+
+  document.getElementById("addCustomBtn").addEventListener("click", () => {
+    const rule = {};
+    customRules.push(rule);
+    renderCustomRule(rule);
+  });
 
   function spawnN(n){
     const w=gameCanvas.clientWidth;
@@ -159,8 +230,17 @@
       const y=size/2+Math.random()*20;
       const vx=(Math.random()-0.5)*200;
       const vy=0;
-      const color=palette[Math.floor(Math.random()*palette.length)];
-      cubes.push(new Cube(x,y,size,vx,vy,color));
+
+      let color = palette[Math.floor(Math.random()*palette.length)];
+      let shape = "cube";
+      for(let rule of customRules){
+        if(Math.random()*100 < rule.chance.value){
+          color = rule.color.value;
+          shape = rule.shape.value;
+        }
+      }
+
+      cubes.push(new Cube(x,y,size,vx,vy,color,shape));
     }
     countLabel.textContent=`Cubes: ${cubes.length}`;
   }
@@ -241,7 +321,6 @@
       accumulator-=step;
     }
 
-    // Set buffer resolution based on renderScale
     buffer.width = Math.floor(gameCanvas.width * renderScale);
     buffer.height = Math.floor(gameCanvas.height * renderScale);
 
@@ -252,7 +331,6 @@
     cubes.forEach(c=>c.draw(bctx));
     bctx.setTransform(1,0,0,1,0,0);
 
-    // Blit buffer scaled to full canvas
     gctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
     gctx.drawImage(buffer, 0,0,gameCanvas.width,gameCanvas.height);
 
