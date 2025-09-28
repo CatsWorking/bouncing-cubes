@@ -31,6 +31,19 @@
     border: none;
   }
 
+  /* credit text below button */
+  .credit {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 60px); /* 60px below button */
+    transform: translateX(-50%);
+    z-index: 20;
+    font-size: 14px;
+    color: rgba(255,255,255,0.75);
+    text-align: center;
+    max-width: 80%;
+  }
+
   .controls {
     position: absolute;
     z-index: 25;
@@ -63,6 +76,7 @@
 <body>
   <div class="stage">
     <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
+    <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
 
     <div class="controls">
       <div class="control" id="countLabel">Cubes: 0</div>
@@ -82,7 +96,6 @@
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { alpha: true });
 
-  // physics constants
   let GRAVITY = 3000;
   const FLOOR_RESTITUTION = 0.72;
   const WALL_RESTITUTION = 0.85;
@@ -120,18 +133,13 @@
       this.rotation += this.angularVel * dt;
 
       const half = this.size/2;
-
       if (this.x - half < 0) { this.x = half; this.vx = -this.vx * WALL_RESTITUTION; }
       if (this.x + half > boundsW) { this.x = boundsW - half; this.vx = -this.vx * WALL_RESTITUTION; }
       if (this.y - half < 0) { this.y = half; this.vy = -this.vy * WALL_RESTITUTION; }
-
       if (this.y + half > boundsH) {
         this.y = boundsH - half;
-        if (Math.abs(this.vy) > 40) {
-          this.vy = -this.vy * FLOOR_RESTITUTION;
-        } else {
-          this.vy = 0;
-        }
+        if (Math.abs(this.vy) > 40) { this.vy = -this.vy * FLOOR_RESTITUTION; }
+        else { this.vy = 0; }
         this.vx *= FLOOR_FRICTION;
       }
     }
@@ -150,11 +158,9 @@
       ctx.translate(-x, -y);
 
       const half = s/2;
-      // front
       ctx.fillStyle = front;
       ctx.fillRect(x-half, y-half, s, s);
 
-      // top
       ctx.beginPath();
       ctx.moveTo(x-half, y-half);
       ctx.lineTo(x, y-half - s*0.5);
@@ -164,7 +170,6 @@
       ctx.fillStyle = top;
       ctx.fill();
 
-      // right
       ctx.beginPath();
       ctx.moveTo(x+half, y-half);
       ctx.lineTo(x+half + s*0.5, y);
@@ -204,34 +209,24 @@
     countLabel.textContent = `Cubes: ${cubes.length}`;
   }
 
-  // collisions between cubes
   function resolveCollisions() {
     for (let i=0;i<cubes.length;i++){
       for (let j=i+1;j<cubes.length;j++){
         const a = cubes[i], b = cubes[j];
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
+        const dx = b.x - a.x, dy = b.y - a.y;
         const dist = Math.sqrt(dx*dx+dy*dy);
         const minDist = (a.size+b.size)/2;
         if (dist < minDist && dist>0) {
-          // push them apart
           const overlap = 0.5*(minDist - dist);
           const nx = dx/dist, ny = dy/dist;
-          a.x -= nx*overlap;
-          a.y -= ny*overlap;
-          b.x += nx*overlap;
-          b.y += ny*overlap;
-
-          // swap velocities along collision normal
-          const dvx = b.vx - a.vx;
-          const dvy = b.vy - a.vy;
+          a.x -= nx*overlap; a.y -= ny*overlap;
+          b.x += nx*overlap; b.y += ny*overlap;
+          const dvx = b.vx - a.vx, dvy = b.vy - a.vy;
           const impact = dvx*nx + dvy*ny;
           if (impact < 0) {
-            const impulse = impact * 0.9; // elasticity
-            a.vx += impulse*nx;
-            a.vy += impulse*ny;
-            b.vx -= impulse*nx;
-            b.vy -= impulse*ny;
+            const impulse = impact * 0.9;
+            a.vx += impulse*nx; a.vy += impulse*ny;
+            b.vx -= impulse*nx; b.vy -= impulse*ny;
           }
         }
       }
@@ -243,28 +238,23 @@
   const fpsLabel = document.getElementById('fpsLabel');
   spawnBtn.addEventListener('click', () => spawnN(10));
 
-  let last = performance.now();
-  let fpsSmoothed = 60;
+  let last = performance.now(), fpsSmoothed = 60;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
 
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-
+    const w = canvas.clientWidth, h = canvas.clientHeight;
     for (let c of cubes) c.step(dt, w, h);
     resolveCollisions();
 
     ctx.clearRect(0,0, canvas.width, canvas.height);
     drawBackground(ctx, w, h);
-
     cubes.sort((a,b)=>a.y-b.y);
     for (let c of cubes) c.draw(ctx);
 
     const fps = 1/dt;
     fpsSmoothed = fpsSmoothed*0.92 + fps*0.08;
     fpsLabel.textContent = `FPS: ${Math.round(fpsSmoothed)}`;
-
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
@@ -275,7 +265,6 @@
     g.addColorStop(1,'rgba(2,6,23,0.9)');
     ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
   }
-
 })();
 </script>
 </body>
