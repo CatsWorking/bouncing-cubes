@@ -6,89 +6,88 @@
 <title>Bouncing Cubes — Sandbox</title>
 <style>
   html,body { height:100%; margin:0; font-family: Inter, Roboto, Arial, sans-serif;
-    background: linear-gradient(180deg, #0f172a 0%, #071027 100%); color: #fff; }
+    background: #0f172a; color:#fff; }
 
-  .stage { position: relative; width: 100%; height: 100vh; overflow: hidden; }
-
+  .stage { position: relative; width:100%; height:100vh; overflow:hidden; }
   canvas { position:absolute; top:0; left:0; width:100%; height:100%; display:block; }
-  #drawCanvas { z-index: 10; cursor: crosshair; }
-  #gameCanvas { z-index: 5; }
+  #gameCanvas { z-index:5; }
+  #drawCanvas { z-index:10; cursor:crosshair; }
 
   .center-btn {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
-    z-index: 20; padding: 14px 22px; border-radius: 12px;
-    background: linear-gradient(135deg,#06b6d4,#7c3aed);
-    color: white; font-weight:600; cursor: pointer; border: none;
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    z-index:20; padding:14px 22px; border-radius:12px;
+    background:linear-gradient(135deg,#06b6d4,#7c3aed);
+    color:white; font-weight:600; cursor:pointer; border:none;
   }
   .credit {
-    position: absolute; left: 50%; top: calc(50% + 60px); transform: translateX(-50%);
-    z-index: 20; font-size: 14px; color: rgba(255,255,255,0.75); text-align: center;
-    max-width: 80%;
+    position:absolute; left:50%; top:calc(50% + 60px); transform:translateX(-50%);
+    z-index:20; font-size:14px; color:rgba(255,255,255,0.75);
+    text-align:center; max-width:80%;
   }
   .controls {
-    position: absolute; z-index: 25; left: 12px; top: 12px; display:flex; gap:10px;
-    align-items:center; background: rgba(0,0,0,0.35); padding:8px 12px; border-radius:10px;
-    backdrop-filter: blur(6px);
-  }
-  .control { font-size:13px; }
-  .attribution {
-    position: absolute; bottom: 12px; right: 12px; color: rgba(255,255,255,0.6);
-    font-size: 12px; z-index:20;
+    position:absolute; left:12px; top:12px; z-index:25;
+    display:flex; flex-direction:column; gap:6px;
+    background:rgba(0,0,0,0.35); padding:8px 12px; border-radius:10px;
+    backdrop-filter:blur(6px);
+    font-size:13px;
   }
   .draw-controls {
-    position: absolute; bottom: 12px; right: 12px; z-index: 30;
-    background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px;
-    display: flex; flex-direction: column; gap: 8px;
+    position:absolute; bottom:12px; right:12px; z-index:30;
+    background:rgba(0,0,0,0.5); padding:10px; border-radius:10px;
+    display:flex; flex-direction:column; gap:8px;
   }
-  input[type="range"] { width:100px; }
+  input[type="range"] { width:120px; }
 </style>
 </head>
 <body>
-  <div class="stage">
-    <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
-    <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
+<div class="stage">
+  <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
+  <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
 
-    <div class="controls">
-      <div class="control" id="countLabel">Cubes: 0</div>
-      <div class="control" id="fpsLabel">FPS: 0</div>
-      <div class="control">Gravity:
-        <input id="gravitySlider" type="range" min="200" max="8000" value="3000" step="100">
-      </div>
-    </div>
+  <div class="controls">
+    <div id="countLabel">Cubes: 0</div>
+    <div id="fpsLabel">FPS: 0</div>
+    <label>Gravity <input id="gravitySlider" type="range" min="200" max="8000" value="3000" step="100"></label>
+    <label>Cube Size <input id="cubeSizeSlider" type="range" min="20" max="100" value="50"></label>
+    <label>Render Scale <input id="renderScaleSlider" type="range" min="50" max="100" value="100"></label>
+    <label><input type="checkbox" id="bloomToggle"> Bloom</label>
+  </div>
 
-    <div class="attribution">Click button to spawn cubes — they fall, bounce, and collide.</div>
+  <canvas id="gameCanvas"></canvas>
+  <canvas id="drawCanvas"></canvas>
 
-    <!-- Two stacked canvases -->
-    <canvas id="gameCanvas"></canvas>
-    <canvas id="drawCanvas"></canvas>
-
-    <div class="draw-controls">
-      <button id="toggleDraw">Enable Collision Drawing Mode</button>
-      <div id="drawTools" style="display:none;">
-        <label>Brush size: <input type="range" id="brushSize" min="2" max="40" value="10"></label>
-        <label>Color: <input type="color" id="brushColor" value="#ffffff"></label>
-        <button id="clearDrawings">Clear Drawings</button>
-      </div>
+  <div class="draw-controls">
+    <button id="toggleDraw">Enable Collision Drawing Mode</button>
+    <div id="drawTools" style="display:none;">
+      <label>Brush size: <input type="range" id="brushSize" min="2" max="40" value="10"></label>
+      <label>Color: <input type="color" id="brushColor" value="#ffffff"></label>
+      <button id="clearDrawings">Clear Drawings</button>
     </div>
   </div>
+</div>
 
 <script>
 (() => {
-  // Game canvas (cubes)
+  // Canvases
   const gameCanvas = document.getElementById('gameCanvas');
   const gctx = gameCanvas.getContext('2d');
-
-  // Drawing canvas (user lines)
   const drawCanvas = document.getElementById('drawCanvas');
   const dctx = drawCanvas.getContext('2d');
 
-  let GRAVITY = 3000;
-  const FLOOR_RESTITUTION = 0.72;
-  const WALL_RESTITUTION = 0.85;
-  const FLOOR_FRICTION = 0.995;
+  // Offscreen buffer for render scaling
+  const buffer = document.createElement("canvas");
+  const bctx = buffer.getContext("2d");
 
-  const slider = document.getElementById("gravitySlider");
-  slider.addEventListener("input", () => { GRAVITY = parseFloat(slider.value); });
+  let GRAVITY = 3000;
+  let cubeBaseSize = 50;
+  let renderScale = 1.0;
+  let bloomEnabled = false;
+
+  // Controls
+  document.getElementById("gravitySlider").addEventListener("input", e => GRAVITY = +e.target.value);
+  document.getElementById("cubeSizeSlider").addEventListener("input", e => cubeBaseSize = +e.target.value);
+  document.getElementById("renderScaleSlider").addEventListener("input", e => renderScale = +e.target.value / 100);
+  document.getElementById("bloomToggle").addEventListener("change", e => bloomEnabled = e.target.checked);
 
   function resize() {
     [gameCanvas, drawCanvas].forEach(cv=>{
@@ -99,141 +98,175 @@
   window.addEventListener('resize', resize);
   resize();
 
+  // Cube model
   class Cube {
-    constructor(x,y,size, vx, vy, color) {
-      this.x = x; this.y = y; this.size = size;
-      this.vx = vx; this.vy = vy; this.color = color;
-      this.rotation = Math.random()*Math.PI*2;
-      this.angularVel = (Math.random()-0.5)*2.0;
+    constructor(x,y,size,vx,vy,color){
+      this.x=x; this.y=y; this.size=size;
+      this.vx=vx; this.vy=vy;
+      this.color=color;
     }
-    step(dt, boundsW, boundsH, lines) {
+    step(dt, boundsW, boundsH, lines){
       this.vy += GRAVITY * dt;
-      this.x += this.vx * dt; this.y += this.vy * dt;
-      this.rotation += this.angularVel * dt;
-      const half = this.size/2;
-      if (this.x - half < 0) { this.x = half; this.vx = -this.vx * WALL_RESTITUTION; }
-      if (this.x + half > boundsW) { this.x = boundsW - half; this.vx = -this.vx * WALL_RESTITUTION; }
-      if (this.y - half < 0) { this.y = half; this.vy = -this.vy * WALL_RESTITUTION; }
-      if (this.y + half > boundsH) {
-        this.y = boundsH - half;
-        if (Math.abs(this.vy) > 40) { this.vy = -this.vy * FLOOR_RESTITUTION; }
-        else { this.vy = 0; }
-        this.vx *= FLOOR_FRICTION;
-      }
-      // Collisions with drawn lines
-      for (let line of lines) {
-        if (lineCollision(this, line)) {
-          this.vy = -this.vy * 0.7;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+
+      const r = this.size/2;
+      if(this.x-r<0){this.x=r;this.vx*=-0.8;}
+      if(this.x+r>boundsW){this.x=boundsW-r;this.vx*=-0.8;}
+      if(this.y-r<0){this.y=r;this.vy*=-0.8;}
+      if(this.y+r>boundsH){this.y=boundsH-r;this.vy*=-0.7;this.vx*=0.98;}
+
+      // Check drawn lines
+      for(let line of lines){
+        if(lineCollision(this,line)){
+          this.vy = -this.vy*0.7;
           this.vx *= 0.8;
         }
       }
     }
-    draw(ctx) {
+    draw(ctx){
       ctx.save();
-      ctx.translate(this.x, this.y);
-      ctx.rotate(this.rotation);
-      ctx.translate(-this.x, -this.y);
+      if(bloomEnabled){
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.color;
+      }
       ctx.fillStyle = this.color;
       ctx.fillRect(this.x-this.size/2, this.y-this.size/2, this.size, this.size);
       ctx.restore();
     }
   }
 
-  function lineCollision(cube, line) {
-    const {x,y,size} = cube;
-    const half = size/2;
-    const cx = x, cy = y;
-    const nearestX = Math.max(Math.min(cx, Math.max(line.x1,line.x2)), Math.min(line.x1,line.x2));
-    const nearestY = Math.max(Math.min(cy, Math.max(line.y1,line.y2)), Math.min(line.y1,line.y2));
-    const dx = cx - nearestX, dy = cy - nearestY;
-    return (dx*dx + dy*dy) < (half*half);
+  function lineCollision(cube,line){
+    const {x,y,size}=cube; const r=size/2;
+    const dx=line.x2-line.x1; const dy=line.y2-line.y1;
+    const lenSq=dx*dx+dy*dy;
+    let t=((x-line.x1)*dx+(y-line.y1)*dy)/lenSq;
+    t=Math.max(0,Math.min(1,t));
+    const nx=line.x1+t*dx, ny=line.y1+t*dy;
+    const distSq=(x-nx)*(x-nx)+(y-ny)*(y-ny);
+    return distSq<r*r;
   }
 
-  const palette = ['#06b6d4','#7c3aed','#ef4444','#f59e0b','#10b981','#3b82f6','#ec4899'];
-  let cubes = [];
-  let lines = [];
+  const palette=['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2'];
+  let cubes=[];
+  let lines=[];
 
-  function spawnN(n) {
-    const w = gameCanvas.clientWidth;
-    for (let i=0;i<n;i++){
-      const size = 30 + Math.random()*50;
-      const x = Math.random() * (w - size) + size/2;
-      const y = size/2 + Math.random()*40;
-      const vx = (Math.random()-0.5)*200;
-      const vy = 0;
-      const color = palette[Math.floor(Math.random()*palette.length)];
+  function spawnN(n){
+    const w=gameCanvas.clientWidth;
+    for(let i=0;i<n;i++){
+      const size=cubeBaseSize + (Math.random()-0.5)*10;
+      const x=Math.random()*(w-size)+size/2;
+      const y=size/2+Math.random()*20;
+      const vx=(Math.random()-0.5)*200;
+      const vy=0;
+      const color=palette[Math.floor(Math.random()*palette.length)];
       cubes.push(new Cube(x,y,size,vx,vy,color));
     }
-    countLabel.textContent = `Cubes: ${cubes.length}`;
+    countLabel.textContent=`Cubes: ${cubes.length}`;
   }
 
-  const spawnBtn = document.getElementById('spawnBtn');
-  const countLabel = document.getElementById('countLabel');
-  const fpsLabel = document.getElementById('fpsLabel');
-  spawnBtn.addEventListener('click', () => spawnN(10));
+  const spawnBtn=document.getElementById('spawnBtn');
+  const countLabel=document.getElementById('countLabel');
+  const fpsLabel=document.getElementById('fpsLabel');
+  spawnBtn.addEventListener('click',()=>spawnN(10));
 
   // Drawing mode
-  const toggleDraw = document.getElementById("toggleDraw");
-  const drawTools = document.getElementById("drawTools");
-  const brushSize = document.getElementById("brushSize");
-  const brushColor = document.getElementById("brushColor");
-  const clearDrawings = document.getElementById("clearDrawings");
-  let drawingMode = false, drawing = false, lastX=0,lastY=0;
+  const toggleDraw=document.getElementById("toggleDraw");
+  const drawTools=document.getElementById("drawTools");
+  const brushSize=document.getElementById("brushSize");
+  const brushColor=document.getElementById("brushColor");
+  const clearDrawings=document.getElementById("clearDrawings");
+  let drawingMode=false,drawing=false,lastX=0,lastY=0;
 
   toggleDraw.addEventListener("click",()=>{
-    drawingMode = !drawingMode;
-    drawTools.style.display = drawingMode ? "flex":"none";
-    toggleDraw.textContent = drawingMode ? "Disable Drawing Mode":"Enable Collision Drawing Mode";
+    drawingMode=!drawingMode;
+    drawTools.style.display=drawingMode?"flex":"none";
+    toggleDraw.textContent=drawingMode?"Disable Drawing Mode":"Enable Collision Drawing Mode";
   });
 
-  clearDrawings.addEventListener("click", ()=>{
-    dctx.clearRect(0,0, drawCanvas.width, drawCanvas.height);
-    lines = [];
+  clearDrawings.addEventListener("click",()=>{
+    dctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+    lines=[];
   });
 
-  drawCanvas.addEventListener("mousedown", e=>{
-    if (!drawingMode) return;
-    drawing = true; [lastX,lastY] = [e.offsetX,e.offsetY];
+  drawCanvas.addEventListener("mousedown",e=>{
+    if(!drawingMode)return;
+    drawing=true;[lastX,lastY]=[e.offsetX,e.offsetY];
   });
-  drawCanvas.addEventListener("mouseup", ()=> drawing=false);
-  drawCanvas.addEventListener("mouseleave", ()=> drawing=false);
-  drawCanvas.addEventListener("mousemove", e=>{
-    if (!drawingMode || !drawing) return;
-    const [x,y] = [e.offsetX,e.offsetY];
-    dctx.strokeStyle = brushColor.value;
-    dctx.lineWidth = brushSize.value;
-    dctx.lineCap = "round";
+  drawCanvas.addEventListener("mouseup",()=>drawing=false);
+  drawCanvas.addEventListener("mouseleave",()=>drawing=false);
+  drawCanvas.addEventListener("mousemove",e=>{
+    if(!drawingMode||!drawing)return;
+    const [x,y]=[e.offsetX,e.offsetY];
+    dctx.strokeStyle=brushColor.value;
+    dctx.lineWidth=brushSize.value;
+    dctx.lineCap="round";
     dctx.beginPath(); dctx.moveTo(lastX,lastY); dctx.lineTo(x,y); dctx.stroke();
     lines.push({x1:lastX,y1:lastY,x2:x,y2:y});
-    [lastX,lastY] = [x,y];
+    [lastX,lastY]=[x,y];
   });
 
+  // Cube-to-cube collisions
+  function resolveCubeCollisions(){
+    for(let i=0;i<cubes.length;i++){
+      for(let j=i+1;j<cubes.length;j++){
+        const a=cubes[i],b=cubes[j];
+        const dx=b.x-a.x,dy=b.y-a.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const minDist=(a.size+b.size)/2;
+        if(dist<minDist&&dist>0){
+          const overlap=0.5*(minDist-dist);
+          const nx=dx/dist, ny=dy/dist;
+          a.x-=nx*overlap; a.y-=ny*overlap;
+          b.x+=nx*overlap; b.y+=ny*overlap;
+          const va=a.vx*nx+a.vy*ny;
+          const vb=b.vx*nx+b.vy*ny;
+          const diff=va-vb;
+          a.vx-=diff*nx; a.vy-=diff*ny;
+          b.vx+=diff*nx; b.vy+=diff*ny;
+        }
+      }
+    }
+  }
+
   // Game loop
-  let last = performance.now(), fpsSmoothed = 60;
-  function loop(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    const w = gameCanvas.clientWidth, h = gameCanvas.clientHeight;
+  let last=performance.now(),fpsSmoothed=60,accumulator=0;
+  function loop(now){
+    const frameTime=(now-last)/1000; last=now;
+    accumulator+=frameTime;
+    const step=1/60;
+    while(accumulator>=step){
+      for(let c of cubes) c.step(step,gameCanvas.clientWidth,gameCanvas.clientHeight,lines);
+      resolveCubeCollisions();
+      accumulator-=step;
+    }
 
-    for (let c of cubes) c.step(dt, w, h, lines);
+    // set buffer resolution based on renderScale [bro i wanna f myself so bad broo]
+    buffer.width = Math.floor(gameCanvas.width * renderScale);
+    buffer.height = Math.floor(gameCanvas.height * renderScale);
 
-    gctx.clearRect(0,0, gameCanvas.width, gameCanvas.height);
-    drawBackground(gctx, w, h);
-    cubes.sort((a,b)=>a.y-b.y);
-    for (let c of cubes) c.draw(gctx);
+    bctx.setTransform(renderScale,0,0,renderScale,0,0);
+    bctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
 
-    const fps = 1/dt;
-    fpsSmoothed = fpsSmoothed*0.92 + fps*0.08;
-    fpsLabel.textContent = `FPS: ${Math.round(fpsSmoothed)}`;
+    drawBackground(bctx,gameCanvas.width,gameCanvas.height);
+    cubes.forEach(c=>c.draw(bctx));
+    bctx.setTransform(1,0,0,1,0,0);
+
+    // Blit buffer scaled to full canvas
+    gctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
+    gctx.drawImage(buffer, 0,0,gameCanvas.width,gameCanvas.height);
+
+    const fps=1/frameTime;
+    fpsSmoothed=fpsSmoothed*0.9+fps*0.1;
+    fpsLabel.textContent=`FPS: ${Math.round(fpsSmoothed)}`;
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
 
   function drawBackground(ctx,w,h){
-    const g = ctx.createLinearGradient(0,0,0,h);
-    g.addColorStop(0,'rgba(6,7,23,0.6)');
-    g.addColorStop(1,'rgba(2,6,23,0.9)');
-    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+    const g=ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,'#0f172a'); g.addColorStop(1,'#020617');
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
   }
 })();
 </script>
