@@ -18,9 +18,14 @@
     z-index:20; padding:14px 22px; border-radius:12px;
     background:linear-gradient(135deg,#06b6d4,#7c3aed);
     color:white; font-weight:600; cursor:pointer; border:none;
+    margin:4px;
+  }
+  .center-controls {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    z-index:20; display:flex; flex-direction:column; align-items:center; gap:10px;
   }
   .credit {
-    position:absolute; left:50%; top:calc(50% + 60px); transform:translateX(-50%);
+    position:absolute; left:50%; top:calc(50% + 120px); transform:translateX(-50%);
     z-index:20; font-size:14px; color:rgba(255,255,255,0.75);
     text-align:center; max-width:80%;
   }
@@ -44,7 +49,10 @@
 </head>
 <body>
 <div class="stage">
-  <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
+  <div class="center-controls">
+    <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
+    <button id="resetBtn" class="center-btn" style="background:linear-gradient(135deg,#f43f5e,#eab308);">Reset Cubes</button>
+  </div>
   <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
 
   <div class="controls">
@@ -246,9 +254,15 @@
   }
 
   const spawnBtn=document.getElementById('spawnBtn');
+  const resetBtn=document.getElementById('resetBtn');
   const countLabel=document.getElementById('countLabel');
   const fpsLabel=document.getElementById('fpsLabel');
+
   spawnBtn.addEventListener('click',()=>spawnN(10));
+  resetBtn.addEventListener('click',()=>{
+    cubes = [];
+    countLabel.textContent=`Cubes: 0`;
+  });
 
   // Drawing mode
   const toggleDraw=document.getElementById("toggleDraw");
