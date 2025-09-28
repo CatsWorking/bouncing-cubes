@@ -3,49 +3,27 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bouncing Cubes — Fixed</title>
+<title>Bouncing Cubes — Fake 3D Shadows & Gravity</title>
 <style>
   :root{
     --ui-bg: rgba(0,0,0,0.36);
     --ui-radius: 10px;
     --accent: linear-gradient(135deg,#06b6d4,#7c3aed);
-    --mono: 13px Inter, Roboto, Arial, sans-serif;
   }
   html,body{height:100%;margin:0;font-family:Inter, Roboto, Arial, sans-serif;background:#071027;color:#fff;}
   .stage{position:relative;width:100%;height:100vh;overflow:hidden;}
-
-  /* stacked canvases */
   canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
   #gameCanvas{z-index:5}
   #drawCanvas{z-index:10;cursor:crosshair}
-
-  .center-btn{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  .center-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     z-index:40;padding:12px 18px;border-radius:12px;background:var(--accent);
-    color:#fff;font-weight:700;border:none;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.45)
-  }
+    color:#fff;font-weight:700;border:none;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.45)}
   .credit{position:absolute;left:50%;top:calc(50% + 64px);transform:translateX(-50%);z-index:40;font-size:14px;color:rgba(255,255,255,0.82)}
-
   .controls{position:absolute;left:12px;top:12px;z-index:40;display:flex;flex-direction:column;gap:8px;background:var(--ui-bg);padding:10px;border-radius:var(--ui-radius)}
   .controls label{font-size:13px;display:flex;align-items:center;gap:8px}
-
   .draw-controls{position:absolute;right:12px;bottom:12px;z-index:40;background:var(--ui-bg);padding:10px;border-radius:var(--ui-radius);display:flex;flex-direction:column;gap:8px}
   #graphicsToggle{position:absolute;left:12px;bottom:12px;z-index:40;background:var(--ui-bg);border-radius:10px;padding:8px;cursor:pointer}
-
-  /* UPDATED GRAPHICS PANEL */
-  #graphicsPanel{
-    position:absolute;
-    left:12px;
-    bottom:56px;
-    z-index:41;
-    background:var(--ui-bg);
-    padding:16px;
-    border-radius:12px;
-    display:none;
-    width:320px;
-    max-width:90vw;
-    font-size:14px;
-  }
+  #graphicsPanel{position:absolute;left:12px;bottom:56px;z-index:41;background:var(--ui-bg);padding:16px;border-radius:12px;display:none;width:320px;max-width:90vw;font-size:14px;}
   #graphicsPanel h3{margin:0 0 8px 0;font-size:16px}
   #graphicsPanel label{font-size:14px}
   input[type="range"]{width:140px}
@@ -53,342 +31,215 @@
 </style>
 </head>
 <body>
-  <div class="stage">
-    <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
-    <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
-
-    <div class="controls">
-      <div id="countLabel">Cubes: 0</div>
-      <div id="fpsLabel">FPS: 0</div>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-    <canvas id="drawCanvas"></canvas>
-
-    <div class="draw-controls">
-      <button id="toggleDraw">Enable Collision Drawing Mode</button>
-      <div id="drawTools" style="display:none">
-        <label>Brush <input id="brushSize" type="range" min="2" max="40" value="10"></label>
-        <label>Color <input id="brushColor" type="color" value="#ffffff"></label>
-        <button id="clearDrawings">Clear Drawings</button>
-      </div>
-    </div>
-
-    <button id="graphicsToggle" title="Graphics Settings">⚙️ Graphics</button>
-    <div id="graphicsPanel" aria-hidden="true">
-      <h3>Graphics Settings</h3>
-      <label>Render Scale <input id="renderScaleSlider" type="range" min="50" max="100" value="100"> <span id="renderScaleVal">100%</span></label>
-      <label>Cube Size <input id="cubeSizeSlider" type="range" min="20" max="100" value="50"> <span id="cubeSizeVal">50</span></label>
-      <label>Slow Motion <input id="timeScaleSlider" type="range" min="50" max="200" value="100"> <span id="timeScaleVal">1.00x</span></label>
-      <label><input id="bloomToggle" type="checkbox"> Bloom</label>
-      <label><input id="shadowsToggle" type="checkbox"> Shadows</label>
-      <label><input id="trailsToggle" type="checkbox"> Trails</label>
-      <label>Shape:
-        <select id="shapeMode">
-          <option value="cube">Cube</option>
-          <option value="circle">Circle</option>
-          <option value="triangle">Triangle</option>
-          <option value="paper">Paper</option>
-        </select>
-      </label>
-      <div style="margin-top:8px" class="small">Presets: <button id="presetLow">Low</button> <button id="presetMed">Med</button> <button id="presetHigh">High</button></div>
+<div class="stage">
+  <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
+  <div class="credit">made by sushi or br33z3</div>
+  <div class="controls">
+    <div id="countLabel">Cubes: 0</div>
+    <div id="fpsLabel">FPS: 0</div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <canvas id="drawCanvas"></canvas>
+  <div class="draw-controls">
+    <button id="toggleDraw">Enable Collision Drawing Mode</button>
+    <div id="drawTools" style="display:none">
+      <label>Brush <input id="brushSize" type="range" min="2" max="40" value="10"></label>
+      <label>Color <input id="brushColor" type="color" value="#ffffff"></label>
+      <button id="clearDrawings">Clear Drawings</button>
     </div>
   </div>
+  <button id="graphicsToggle" title="Graphics Settings">⚙️ Graphics</button>
+  <div id="graphicsPanel" aria-hidden="true">
+    <h3>Graphics Settings</h3>
+    <label>Render Scale <input id="renderScaleSlider" type="range" min="50" max="100" value="100"> <span id="renderScaleVal">100%</span></label>
+    <label>Cube Size <input id="cubeSizeSlider" type="range" min="20" max="100" value="50"> <span id="cubeSizeVal">50</span></label>
+    <label>Gravity <input id="gravitySlider" type="range" min="500" max="5000" value="3000"> <span id="gravityVal">3000</span></label>
+    <label><input id="bloomToggle" type="checkbox"> Bloom</label>
+    <label><input id="shadowsToggle" type="checkbox"> Shadows</label>
+    <label><input id="trailsToggle" type="checkbox"> Trails</label>
+    <label>Shape:
+      <select id="shapeMode">
+        <option value="cube">Cube</option>
+        <option value="circle">Circle</option>
+        <option value="triangle">Triangle</option>
+        <option value="paper">Paper</option>
+      </select>
+    </label>
+    <div style="margin-top:8px" class="small">Presets: <button id="presetLow">Low</button> <button id="presetMed">Med</button> <button id="presetHigh">High</button></div>
+  </div>
+</div>
 
 <script>
 (() => {
-  const gameCanvas = document.getElementById('gameCanvas');
-  const gctx = gameCanvas.getContext('2d');
-  const drawCanvas = document.getElementById('drawCanvas');
-  const dctx = drawCanvas.getContext('2d');
-  const buffer = document.createElement('canvas');
-  const bctx = buffer.getContext('2d');
+const gameCanvas=document.getElementById('gameCanvas');
+const gctx=gameCanvas.getContext('2d');
+const drawCanvas=document.getElementById('drawCanvas');
+const dctx=drawCanvas.getContext('2d');
+const buffer=document.createElement('canvas');
+const bctx=buffer.getContext('2d');
 
-  const spawnBtn = document.getElementById('spawnBtn');
-  const countLabel = document.getElementById('countLabel');
-  const fpsLabel = document.getElementById('fpsLabel');
-  const toggleDraw = document.getElementById('toggleDraw');
-  const drawTools = document.getElementById('drawTools');
-  const brushSize = document.getElementById('brushSize');
-  const brushColor = document.getElementById('brushColor');
-  const clearDrawings = document.getElementById('clearDrawings');
+const spawnBtn=document.getElementById('spawnBtn');
+const countLabel=document.getElementById('countLabel');
+const fpsLabel=document.getElementById('fpsLabel');
+const toggleDraw=document.getElementById('toggleDraw');
+const drawTools=document.getElementById('drawTools');
+const brushSize=document.getElementById('brushSize');
+const brushColor=document.getElementById('brushColor');
+const clearDrawings=document.getElementById('clearDrawings');
 
-  const graphicsToggle = document.getElementById('graphicsToggle');
-  const graphicsPanel = document.getElementById('graphicsPanel');
-  const renderScaleSlider = document.getElementById('renderScaleSlider');
-  const renderScaleVal = document.getElementById('renderScaleVal');
-  const cubeSizeSlider = document.getElementById('cubeSizeSlider');
-  const cubeSizeVal = document.getElementById('cubeSizeVal');
-  const timeScaleSlider = document.getElementById('timeScaleSlider');
-  const timeScaleVal = document.getElementById('timeScaleVal');
-  const bloomToggle = document.getElementById('bloomToggle');
-  const shadowsToggle = document.getElementById('shadowsToggle');
-  const trailsToggle = document.getElementById('trailsToggle');
-  const shapeMode = document.getElementById('shapeMode');
-  const presetLow = document.getElementById('presetLow');
-  const presetMed = document.getElementById('presetMed');
-  const presetHigh = document.getElementById('presetHigh');
+const graphicsToggle=document.getElementById('graphicsToggle');
+const graphicsPanel=document.getElementById('graphicsPanel');
+const renderScaleSlider=document.getElementById('renderScaleSlider');
+const renderScaleVal=document.getElementById('renderScaleVal');
+const cubeSizeSlider=document.getElementById('cubeSizeSlider');
+const cubeSizeVal=document.getElementById('cubeSizeVal');
+const gravitySlider=document.getElementById('gravitySlider');
+const gravityVal=document.getElementById('gravityVal');
+const bloomToggle=document.getElementById('bloomToggle');
+const shadowsToggle=document.getElementById('shadowsToggle');
+const trailsToggle=document.getElementById('trailsToggle');
+const shapeMode=document.getElementById('shapeMode');
 
-  let GRAVITY = 3000;
-  let cubeBaseSize = +cubeSizeSlider.value;
-  let renderScale = +renderScaleSlider.value / 100;
-  let timeScale = +timeScaleSlider.value / 100;
-  let bloomEnabled = false;
-  let shadowsEnabled = false;
-  let trailsEnabled = false;
-  let shape = 'cube';
+let GRAVITY=+gravitySlider.value;
+let cubeBaseSize=+cubeSizeSlider.value;
+let renderScale=+renderScaleSlider.value/100;
+let bloomEnabled=false;
+let shadowsEnabled=false;
+let trailsEnabled=false;
+let shape='cube';
 
-  const palette = ['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2','#7ad6ff'];
-  let cubes = [];
-  let lines = [];
+const palette=['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2','#7ad6ff'];
+let cubes=[]; let lines=[];
 
-  function resizeCanvases(){
-    const rect = gameCanvas.getBoundingClientRect();
-    const w = Math.max(1, Math.floor(rect.width));
-    const h = Math.max(1, Math.floor(rect.height));
-    [gameCanvas, drawCanvas].forEach(cv => { cv.width = w; cv.height = h; });
-    buffer.width = Math.max(1, Math.floor(w * renderScale));
-    buffer.height = Math.max(1, Math.floor(h * renderScale));
+function resizeCanvases(){const rect=gameCanvas.getBoundingClientRect(); const w=Math.max(1,Math.floor(rect.width)); const h=Math.max(1,Math.floor(rect.height));
+[gameCanvas,drawCanvas].forEach(cv=>{cv.width=w; cv.height=h;});
+buffer.width=Math.max(1,Math.floor(w*renderScale)); buffer.height=Math.max(1,Math.floor(h*renderScale));}
+window.addEventListener('resize',resizeCanvases); resizeCanvases();
+
+function randRange(a,b){return a+Math.random()*(b-a);}
+
+class Cube{
+constructor(x,y,size,vx,vy,color){
+this.x=x; this.y=y; this.size=size; this.vx=vx; this.vy=vy; this.color=color;
+this.angle=Math.random()*Math.PI*2; this.angularVel=(Math.random()-0.5)*2.0;
+this.mass=Math.max(0.1,size*size*0.001); this.inertia=0.1666*this.mass*(this.size*this.size);
+}
+step(dt,w,h,lines){
+this.vy+=GRAVITY*dt;
+this.x+=this.vx*dt; this.y+=this.vy*dt; this.angle+=this.angularVel*dt;
+this.vx*=0.999; this.vy*=0.999; this.angularVel*=0.998;
+const half=this.size/2;
+if(this.x-half<0){this.x=half; this.vx=-this.vx*0.8; this.angularVel+=(Math.random()-0.5)*3;}
+if(this.x+half>w){this.x=w-half; this.vx=-this.vx*0.8; this.angularVel+=(Math.random()-0.5)*3;}
+if(this.y-half<0){this.y=half; this.vy=-this.vy*0.8; this.angularVel+=(Math.random()-0.5)*3;}
+if(this.y+half>h){this.y=h-half; this.vy=0; this.vx*=0.97; this.angularVel*=0.96;}
+for(let ln of lines){
+  if(lineCollision(this,ln)){
+    const proj=projectPointOnSegment(this.x,this.y,ln.x1,ln.y1,ln.x2,ln.y2);
+    const nx=this.x-proj.x,ny=this.y-proj.y;
+    const dist=Math.hypot(nx,ny)||1;
+    const penetration=Math.max(0,(this.size/2+ln.thickness/2)-dist);
+    const ux=nx/dist,uy=ny/dist;
+    this.x+=ux*penetration; this.y+=uy*penetration;
+    const vdot=this.vx*ux+this.vy*uy;
+    this.vx-=(1.6*vdot)*ux; this.vy-=(1.6*vdot)*uy;
+    const tx=-uy,ty=ux;
+    const tangential=this.vx*tx+this.vy*ty;
+    this.angularVel+=tangential*0.02;
+    this.vx*=0.92; this.vy*=0.92;
   }
-  window.addEventListener('resize', resizeCanvases);
-  resizeCanvases();
+}}
 
-  function randRange(a,b){ return a + Math.random() * (b-a); }
+draw(ctx){
+ctx.save();
+const half=this.size/2;
 
-  class Cube {
-    constructor(x,y,size,vx,vy,color){
-      this.x = x; this.y = y;
-      this.size = size; this.vx = vx; this.vy = vy;
-      this.color = color;
-      this.angle = Math.random() * Math.PI * 2;
-      this.angularVel = (Math.random()-0.5) * 2.0;
-      this.mass = Math.max(0.1, size * size * 0.001);
-      this.inertia = 0.1666 * this.mass * (this.size * this.size);
-    }
-
-    step(dt, w, h, lines, tscale){
-      this.vy += GRAVITY * dt * tscale;
-      this.x += this.vx * dt * tscale;
-      this.y += this.vy * dt * tscale;
-      this.angle += this.angularVel * dt * tscale;
-      this.vx *= 0.999; this.vy *= 0.999; this.angularVel *= 0.998;
-      const half = this.size / 2;
-      if (this.x - half < 0) { this.x = half; this.vx = -this.vx * 0.8; this.angularVel += (Math.random()-0.5) * 3; }
-      if (this.x + half > w) { this.x = w - half; this.vx = -this.vx * 0.8; this.angularVel += (Math.random()-0.5) * 3; }
-      if (this.y - half < 0) { this.y = half; this.vy = -this.vy * 0.8; this.angularVel += (Math.random()-0.5) * 3; }
-      if (this.y + half > h) {
-        this.y = h;
-        if (Math.abs(this.vy) > 30) { this.vy = -this.vy * 0.72; this.angularVel += (this.vx / 40) + (Math.random()-0.5) * 2; }
-        else { this.vy = 0; this.vx *= 0.97; this.angularVel *= 0.96; }
-      }
-      for (let ln of lines) {
-        if (lineCollision(this, ln)) {
-          const proj = projectPointOnSegment(this.x, this.y, ln.x1, ln.y1, ln.x2, ln.y2);
-          const nx = this.x - proj.x, ny = this.y - proj.y;
-          const dist = Math.hypot(nx, ny) || 1;
-          const penetration = Math.max(0, (this.size/2 + ln.thickness/2) - dist);
-          const ux = nx / dist, uy = ny / dist;
-          this.x += ux * penetration; this.y += uy * penetration;
-          const vdot = this.vx * ux + this.vy * uy;
-          this.vx -= (1.6 * vdot) * ux; this.vy -= (1.6 * vdot) * uy;
-          const tx = -uy, ty = ux;
-          const tangential = this.vx*tx + this.vy*ty;
-          this.angularVel += tangential * 0.02;
-          this.vx *= 0.92; this.vy *= 0.92;
-        }
-      }
-    }
-
-    draw(ctx, opts = {}) {
-      const { bloom=false, shadows=false } = opts;
-      ctx.save();
-      if (shadows) {
-        ctx.fillStyle = 'rgba(0,0,0,0.22)';
-        ctx.beginPath();
-        ctx.ellipse(this.x - this.size*0.18, this.y + this.size*0.48, this.size*0.45, this.size*0.18, 0, 0, Math.PI*2);
-        ctx.fill();
-      }
-      if (bloom) { ctx.shadowBlur = 20; ctx.shadowColor = this.color; } else { ctx.shadowBlur = 0; }
-      ctx.translate(this.x, this.y);
-      ctx.rotate(this.angle);
-      const s = this.size, half = s/2;
-
-      if (shape === 'cube') {
-        // 3D cube as before
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-half, -half, s, s);
-        // ... shading omitted for brevity ...
-      } else if (shape === 'paper') {
-        // FLAT SQUARE
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-half, -half, s, s);
-      } else if (shape === 'circle') {
-        ctx.beginPath();
-        ctx.arc(0,0,half,0,Math.PI*2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-      } else if (shape === 'triangle') {
-        ctx.beginPath();
-        ctx.moveTo(0, -half);
-        ctx.lineTo(half, half);
-        ctx.lineTo(-half, half);
-        ctx.closePath();
-        ctx.fillStyle = this.color;
-        ctx.fill();
-      }
-
-      ctx.restore();
+// draw shadows under self and nearby cubes (fake 3D)
+if(shadowsEnabled){
+  for(let other of cubes){
+    const dx=other.x-this.x, dy=other.y-this.y;
+    const dist=Math.hypot(dx,dy);
+    if(dist<100){ // only nearby
+      ctx.fillStyle='rgba(0,0,0,'+((100-dist)/300)+')';
+      ctx.beginPath();
+      ctx.ellipse(other.x,other.y+other.size*0.5,other.size*0.45,other.size*0.15,0,0,Math.PI*2);
+      ctx.fill();
     }
   }
-
-  function projectPointOnSegment(px, py, x1, y1, x2, y2){
-    const dx = x2 - x1, dy = y2 - y1;
-    const len2 = dx*dx + dy*dy || 1;
-    let t = ((px - x1)*dx + (py - y1)*dy) / len2;
-    t = Math.max(0, Math.min(1, t));
-    return { x: x1 + t*dx, y: y1 + t*dy, t };
+  for(let ln of lines){
+    ctx.fillStyle='rgba(0,0,0,0.08)';
+    ctx.beginPath();
+    const mx=(ln.x1+ln.x2)/2, my=(ln.y1+ln.y2)/2;
+    ctx.ellipse(mx,my,20,6,0,0,Math.PI*2);
+    ctx.fill();
   }
+}
 
-  function lineCollision(cube, line){
-    const proj = projectPointOnSegment(cube.x, cube.y, line.x1, line.y1, line.x2, line.y2);
-    const dx = cube.x - proj.x, dy = cube.y - proj.y;
-    const dist2 = dx*dx + dy*dy;
-    const radius = cube.size/2 + line.thickness/2;
-    return dist2 < radius*radius;
-  }
+ctx.translate(this.x,this.y);
+ctx.rotate(this.angle);
 
-  function spawnN(n){
-    const w = gameCanvas.width, h = gameCanvas.height;
-    for (let i=0;i<n;i++){
-      const size = cubeBaseSize + (Math.random()-0.5) * 12;
-      const x = randRange(size/2 + 8, Math.max(size/2 + 8, w - size/2 - 8));
-      const y = randRange(size/2 + 8, Math.min(120, h*0.25));
-      const vx = randRange(-180, 180);
-      const vy = randRange(-40, 10);
-      const color = palette[Math.floor(Math.random()*palette.length)];
-      cubes.push(new Cube(x,y,size,vx,vy,color));
-    }
-    countLabel.textContent = `Cubes: ${cubes.length}`;
-  }
-  spawnBtn.addEventListener('click', ()=> spawnN(10));
+if(shape==='cube'||shape==='paper'){
+  ctx.fillStyle=this.color; ctx.fillRect(-half,-half,this.size,this.size);
+} else if(shape==='circle'){
+  ctx.beginPath(); ctx.arc(0,0,half,0,Math.PI*2); ctx.fillStyle=this.color; ctx.fill();
+} else if(shape==='triangle'){
+  ctx.beginPath(); ctx.moveTo(0,-half); ctx.lineTo(half,half); ctx.lineTo(-half,half); ctx.closePath(); ctx.fillStyle=this.color; ctx.fill();
+}
+ctx.restore();
+}
+}
 
-  function resolveCubeCollisions(){
-    for (let i=0;i<cubes.length;i++){
-      for (let j=i+1;j<cubes.length;j++){
-        const A = cubes[i], B = cubes[j];
-        const dx = B.x - A.x, dy = B.y - A.y;
-        const dist = Math.hypot(dx,dy);
-        const minDist = (A.size + B.size) / 2;
-        if (dist > 0 && dist < minDist){
-          const overlap = (minDist - dist);
-          const nx = dx / dist, ny = dy / dist;
-          const totalMass = A.mass + B.mass;
-          const aPush = overlap * (B.mass / totalMass);
-          const bPush = overlap * (A.mass / totalMass);
-          A.x -= nx * aPush; A.y -= ny * aPush;
-          B.x += nx * bPush; B.y += ny * bPush;
+function projectPointOnSegment(px,py,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1; const len2=dx*dx+dy*dy||1; let t=((px-x1)*dx+(py-y1)*dy)/len2; t=Math.max(0,Math.min(1,t)); return{x:x1+t*dx,y:y1+t*dy,t};}
+function lineCollision(cube,line){const proj=projectPointOnSegment(cube.x,cube.y,line.x1,line.y1,line.x2,line.y2); const dx=cube.x-proj.x, dy=cube.y-proj.y; const dist2=dx*dx+dy*dy; const radius=cube.size/2+line.thickness/2; return dist2<radius*radius;}
 
-          const rvx = B.vx - A.vx, rvy = B.vy - A.vy;
-          const velAlong = rvx*nx + rvy*ny;
-          if (velAlong < 0){
-            const e = 0.75;
-            const j = -(1+e) * velAlong / (1/A.mass + 1/B.mass);
-            const ix = j * nx, iy = j * ny;
-            A.vx -= ix / A.mass; A.vy -= iy / A.mass;
-            B.vx += ix / B.mass; B.vy += iy / B.mass;
+function spawnN(n){const w=gameCanvas.width,h=gameCanvas.height;for(let i=0;i<n;i++){const size=cubeBaseSize+(Math.random()-0.5)*12;const x=randRange(size/2+8,w-size/2-8);const y=randRange(size/2+8,h*0.25);const vx=randRange(-180,180);const vy=randRange(-40,10);const color=palette[Math.floor(Math.random()*palette.length)];cubes.push(new Cube(x,y,size,vx,vy,color));} countLabel.textContent=`Cubes: ${cubes.length}`;}
+spawnBtn.addEventListener('click',()=>spawnN(10));
 
-            const tx = -ny, ty = nx;
-            const tang = rvx*tx + rvy*ty;
-            const aiA = tang * 0.02; const aiB = -tang * 0.02;
-            A.angularVel += aiA / (A.inertia || 1);
-            B.angularVel += aiB / (B.inertia || 1);
-          }
-        }
-      }
-    }
-  }
+function resolveCubeCollisions(){for(let i=0;i<cubes.length;i++){for(let j=i+1;j<cubes.length;j++){const A=cubes[i],B=cubes[j];const dx=B.x-A.x,dy=B.y-A.y;const dist=Math.hypot(dx,dy);const minDist=(A.size+B.size)/2;if(dist>0&&dist<minDist){const overlap=minDist-dist;const nx=dx/dist,ny=dy/dist;const totalMass=A.mass+B.mass;const aPush=overlap*(B.mass/totalMass),bPush=overlap*(A.mass/totalMass);A.x-=nx*aPush;A.y-=ny*aPush;B.x+=nx*bPush;B.y+=ny*bPush;const rvx=B.vx-A.vx,rvy=B.vy-A.vy;const velAlong=rvx*nx+rvy*ny;if(velAlong<0){const e=0.75,j=-(1+e)*velAlong/(1/A.mass+1/B.mass);const ix=j*nx,iy=j*ny;A.vx-=ix/A.mass;A.vy-=iy/A.mass;B.vx+=ix/B.mass;B.vy+=iy/B.mass;const tx=-ny,ty=nx;const tang=rvx*tx+rvy*ty;A.angularVel+=tang*0.02/(A.inertia||1); B.angularVel-=tang*0.02/(B.inertia||1);}}}}}
 
-  let drawingMode = false, drawing = false, lastX = 0, lastY = 0;
-  toggleDraw.addEventListener('click', ()=> {
-    drawingMode = !drawingMode;
-    drawTools.style.display = drawingMode ? 'flex' : 'none';
-    toggleDraw.textContent = drawingMode ? 'Disable Collision Drawing Mode' : 'Enable Collision Drawing Mode';
-  });
+let drawingMode=false,drawing=false,lastX=0,lastY=0;
+toggleDraw.addEventListener('click',()=>{drawingMode=!drawingMode; drawTools.style.display=drawingMode?'flex':'none'; toggleDraw.textContent=drawingMode?'Disable Collision Drawing Mode':'Enable Collision Drawing Mode';});
+function addLineSegment(x1,y1,x2,y2,thickness,color){const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1; lines.push({x1,y1,x2,y2,thickness,color,dx,dy,len});}
+drawCanvas.addEventListener('mousedown',e=>{if(!drawingMode) return; drawing=true; lastX=e.offsetX; lastY=e.offsetY;});
+drawCanvas.addEventListener('mouseup',()=>drawing=false);
+drawCanvas.addEventListener('mouseleave',()=>drawing=false);
+drawCanvas.addEventListener('mousemove',e=>{if(!drawingMode||!drawing) return; const x=e.offsetX,y=e.offsetY; dctx.strokeStyle=brushColor.value; dctx.lineWidth=+brushSize.value; dctx.lineCap='round'; dctx.beginPath(); dctx.moveTo(lastX,lastY); dctx.lineTo(x,y); dctx.stroke(); addLineSegment(lastX,lastY,x,y,+brushSize.value,brushColor.value); lastX=x; lastY=y;});
+clearDrawings.addEventListener('click',()=>{dctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); lines=[];});
 
-  function addLineSegment(x1,y1,x2,y2,thickness,color){
-    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx,dy) || 1;
-    lines.push({ x1,y1,x2,y2,thickness,color,dx,dy,len });
-  }
+graphicsToggle.addEventListener('click',()=>{const open=graphicsPanel.style.display==='block'; graphicsPanel.style.display=open?'none':'block'; graphicsPanel.setAttribute('aria-hidden',open?'true':'false');});
+renderScaleSlider.addEventListener('input',e=>{renderScale=+e.target.value/100; renderScaleVal.textContent=`${Math.round(renderScale*100)}%`;});
+cubeSizeSlider.addEventListener('input',e=>{cubeBaseSize=+e.target.value; cubeSizeVal.textContent=`${cubeBaseSize}`;});
+gravitySlider.addEventListener('input',e=>{GRAVITY=+e.target.value; gravityVal.textContent=`${GRAVITY}`;});
+bloomToggle.addEventListener('change',e=>bloomEnabled=e.target.checked);
+shadowsToggle.addEventListener('change',e=>shadowsEnabled=e.target.checked);
+trailsToggle.addEventListener('change',e=>trailsEnabled=e.target.checked);
+shapeMode.addEventListener('change',e=>shape=e.target.value||'cube');
 
-  drawCanvas.addEventListener('mousedown', (e)=>{ if (!drawingMode) return; drawing = true; lastX = e.offsetX; lastY = e.offsetY; });
-  drawCanvas.addEventListener('mouseup', ()=> drawing = false);
-  drawCanvas.addEventListener('mouseleave', ()=> drawing = false);
-  drawCanvas.addEventListener('mousemove', (e)=>{
-    if (!drawingMode || !drawing) return;
-    const x = e.offsetX, y = e.offsetY;
-    dctx.strokeStyle = brushColor.value;
-    dctx.lineWidth = +brushSize.value;
-    dctx.lineCap = 'round';
-    dctx.beginPath(); dctx.moveTo(lastX, lastY); dctx.lineTo(x, y); dctx.stroke();
-    addLineSegment(lastX, lastY, x, y, +brushSize.value, brushColor.value);
-    lastX = x; lastY = y;
-  });
+let lastTime=performance.now(), acc=0, fpsSmoothed=60;
+function gameLoop(now){
+resizeCanvases();
+const frameTime=Math.min(0.05,(now-lastTime)/1000);
+lastTime=now; acc+=frameTime;
+const step=1/60;
+while(acc>=step){for(let c of cubes)c.step(step,gameCanvas.width,gameCanvas.height,lines); resolveCubeCollisions(); acc-=step;}
+const w=gameCanvas.width,h=gameCanvas.height;
+buffer.width=Math.max(1,Math.floor(w*renderScale)); buffer.height=Math.max(1,Math.floor(h*renderScale));
+bctx.setTransform(1,0,0,1,0,0); bctx.clearRect(0,0,buffer.width,buffer.height); bctx.scale(renderScale,renderScale);
+if(trailsEnabled){bctx.fillStyle='rgba(7,16,39,0.12)'; bctx.fillRect(0,0,w,h);} else {drawBackground(bctx,w,h);}
+for(let ln of lines){bctx.strokeStyle=ln.color||'#fff'; bctx.lineWidth=ln.thickness||6; bctx.lineCap='round'; bctx.beginPath(); bctx.moveTo(ln.x1,ln.y1); bctx.lineTo(ln.x2,ln.y2); bctx.stroke();}
+for(let c of cubes)c.draw(bctx);
+bctx.setTransform(1,0,0,1,0,0); gctx.setTransform(1,0,0,1,0,0); gctx.clearRect(0,0,w,h); gctx.imageSmoothingEnabled=true; gctx.drawImage(buffer,0,0,w,h);
+const fps=1/frameTime; fpsSmoothed=fpsSmoothed*0.9+fps*0.1; fpsLabel.textContent=`FPS: ${Math.round(fpsSmoothed)}`;
+requestAnimationFrame(gameLoop);}
+requestAnimationFrame(gameLoop);
 
-  clearDrawings.addEventListener('click', ()=>{ dctx.clearRect(0,0, drawCanvas.width, drawCanvas.height); lines = []; });
+function drawBackground(ctx,w,h){const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#071027'); g.addColorStop(1,'#020417'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);}
+drawBackground(dctx,drawCanvas.width,drawCanvas.height);
 
-  graphicsToggle.addEventListener('click', ()=> {
-    const open = graphicsPanel.style.display === 'block';
-    graphicsPanel.style.display = open ? 'none' : 'block';
-    graphicsPanel.setAttribute('aria-hidden', open ? 'true' : 'false');
-  });
+window.addEventListener('keydown',e=>{if(e.key==='c'){cubes=[];countLabel.textContent=`Cubes: ${cubes.length}`;} if(e.key==='s'){spawnN(10);}});
+spawnN(6);
 
-  renderScaleSlider.addEventListener('input', (e)=>{ renderScale = +e.target.value / 100; renderScaleVal.textContent = `${Math.round(renderScale*100)}%`; });
-  cubeSizeSlider.addEventListener('input', (e)=>{ cubeBaseSize = +e.target.value; cubeSizeVal.textContent = `${cubeBaseSize}`; });
-  timeScaleSlider.addEventListener('input', (e)=>{ timeScale = +e.target.value / 100; timeScaleVal.textContent = `${timeScale.toFixed(2)}x`; });
-  bloomToggle.addEventListener('change', (e)=> bloomEnabled = e.target.checked );
-  shadowsToggle.addEventListener('change', (e)=> shadowsEnabled = e.target.checked );
-  trailsToggle.addEventListener('change', (e)=> trailsEnabled = e.target.checked );
-  shapeMode.addEventListener('change', (e)=> shape = e.target.value || 'cube');
-
-  presetLow.addEventListener('click', ()=>{ renderScaleSlider.value = 50; renderScale = 0.5; renderScaleVal.textContent = '50%'; bloomToggle.checked = false; bloomEnabled = false; shadowsToggle.checked = false; shadowsEnabled = false; trailsToggle.checked = false; trailsEnabled = false; cubeSizeSlider.value = 36; cubeBaseSize = 36; cubeSizeVal.textContent = '36'; timeScaleSlider.value = 100; timeScale = 1.0; timeScaleVal.textContent = '1.00x'; });
-  presetMed.addEventListener('click', ()=>{ renderScaleSlider.value = 75; renderScale = 0.75; renderScaleVal.textContent = '75%'; bloomToggle.checked = true; bloomEnabled = true; shadowsToggle.checked = true; shadowsEnabled = true; trailsToggle.checked = false; trailsEnabled = false; cubeSizeSlider.value = 50; cubeBaseSize = 50; cubeSizeVal.textContent = '50'; timeScaleSlider.value = 100; timeScale = 1.0; timeScaleVal.textContent = '1.00x'; });
-  presetHigh.addEventListener('click', ()=>{ renderScaleSlider.value = 100; renderScale = 1.0; renderScaleVal.textContent = '100%'; bloomToggle.checked = true; bloomEnabled = true; shadowsToggle.checked = true; shadowsEnabled = true; trailsToggle.checked = true; trailsEnabled = true; cubeSizeSlider.value = 70; cubeBaseSize = 70; cubeSizeVal.textContent = '70'; timeScaleSlider.value = 100; timeScale = 1.0; timeScaleVal.textContent = '1.00x'; });
-
-  let lastTime = performance.now(), acc = 0, fpsSmoothed = 60;
-  function gameLoop(now){
-    resizeCanvases();
-    const frameTime = Math.min(0.05, (now - lastTime) / 1000);
-    lastTime = now;
-    acc += frameTime;
-    const step = 1/60;
-    while (acc >= step){ for (let c of cubes) c.step(step, gameCanvas.width, gameCanvas.height, lines, timeScale); resolveCubeCollisions(); acc -= step; }
-
-    const w = gameCanvas.width, h = gameCanvas.height;
-    buffer.width = Math.max(1, Math.floor(w * renderScale));
-    buffer.height = Math.max(1, Math.floor(h * renderScale));
-    bctx.setTransform(1,0,0,1,0,0); bctx.clearRect(0,0, buffer.width, buffer.height); bctx.scale(renderScale, renderScale);
-
-    if (trailsEnabled){ bctx.fillStyle = 'rgba(7,16,39,0.12)'; bctx.fillRect(0,0, w, h); } 
-    else { drawBackground(bctx, w, h); }
-
-    for (let ln of lines){ bctx.strokeStyle = ln.color||'#fff'; bctx.lineWidth = ln.thickness||6; bctx.lineCap='round'; bctx.beginPath(); bctx.moveTo(ln.x1,ln.y1); bctx.lineTo(ln.x2,ln.y2); bctx.stroke(); }
-    for (let c of cubes){ c.draw(bctx,{bloom:bloomEnabled, shadows:shadowsEnabled}); }
-
-    bctx.setTransform(1,0,0,1,0,0); gctx.setTransform(1,0,0,1,0,0); gctx.clearRect(0,0,w,h); gctx.imageSmoothingEnabled = true; gctx.drawImage(buffer,0,0,w,h);
-
-    const fps = 1/frameTime; fpsSmoothed = fpsSmoothed*0.9 + fps*0.1; fpsLabel.textContent = `FPS: ${Math.round(fpsSmoothed)}`;
-    requestAnimationFrame(gameLoop);
-  }
-  requestAnimationFrame(gameLoop);
-
-  function drawBackground(ctx, w, h){ const g = ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#071027'); g.addColorStop(1,'#020417'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h); }
-
-  drawBackground(dctx, drawCanvas.width, drawCanvas.height);
-
-  window.addEventListener('keydown',(e)=>{ if(e.key==='c'){ cubes=[]; countLabel.textContent=`Cubes: ${cubes.length}`; } if(e.key==='s'){ spawnN(10); } });
-  spawnN(6);
-
-  window._debug = { cubes, lines };
+window._debug={cubes,lines};
 })();
 </script>
 </body>
