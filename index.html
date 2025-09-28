@@ -9,6 +9,11 @@
     background: linear-gradient(180deg, #0f172a 0%, #071027 100%); color: #fff; }
 
   .stage { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+
+  canvas { position:absolute; top:0; left:0; width:100%; height:100%; display:block; }
+  #drawCanvas { z-index: 10; cursor: crosshair; }
+  #gameCanvas { z-index: 5; }
+
   .center-btn {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
     z-index: 20; padding: 14px 22px; border-radius: 12px;
@@ -35,7 +40,6 @@
     background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px;
     display: flex; flex-direction: column; gap: 8px;
   }
-  canvas { display:block; width:100%; height:100%; cursor: crosshair; }
   input[type="range"] { width:100px; }
 </style>
 </head>
@@ -53,21 +57,30 @@
     </div>
 
     <div class="attribution">Click button to spawn cubes — they fall, bounce, and collide.</div>
-    <canvas id="c"></canvas>
+
+    <!-- Two stacked canvases -->
+    <canvas id="gameCanvas"></canvas>
+    <canvas id="drawCanvas"></canvas>
 
     <div class="draw-controls">
       <button id="toggleDraw">Enable Collision Drawing Mode</button>
       <div id="drawTools" style="display:none;">
         <label>Brush size: <input type="range" id="brushSize" min="2" max="40" value="10"></label>
         <label>Color: <input type="color" id="brushColor" value="#ffffff"></label>
+        <button id="clearDrawings">Clear Drawings</button>
       </div>
     </div>
   </div>
 
 <script>
 (() => {
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d', { alpha: true });
+  // Game canvas (cubes)
+  const gameCanvas = document.getElementById('gameCanvas');
+  const gctx = gameCanvas.getContext('2d');
+
+  // Drawing canvas (user lines)
+  const drawCanvas = document.getElementById('drawCanvas');
+  const dctx = drawCanvas.getContext('2d');
 
   let GRAVITY = 3000;
   const FLOOR_RESTITUTION = 0.72;
@@ -77,12 +90,11 @@
   const slider = document.getElementById("gravitySlider");
   slider.addEventListener("input", () => { GRAVITY = parseFloat(slider.value); });
 
-  let DPR = Math.max(1, window.devicePixelRatio || 1);
   function resize() {
-    DPR = Math.max(1, window.devicePixelRatio || 1);
-    canvas.width = Math.floor(canvas.clientWidth * DPR) || 1;
-    canvas.height = Math.floor(canvas.clientHeight * DPR) || 1;
-    ctx.setTransform(DPR,0,0,DPR,0,0);
+    [gameCanvas, drawCanvas].forEach(cv=>{
+      cv.width = cv.clientWidth;
+      cv.height = cv.clientHeight;
+    });
   }
   window.addEventListener('resize', resize);
   resize();
@@ -108,7 +120,7 @@
         else { this.vy = 0; }
         this.vx *= FLOOR_FRICTION;
       }
-      // collisions with drawn lines
+      // Collisions with drawn lines
       for (let line of lines) {
         if (lineCollision(this, line)) {
           this.vy = -this.vy * 0.7;
@@ -142,7 +154,7 @@
   let lines = [];
 
   function spawnN(n) {
-    const w = canvas.clientWidth;
+    const w = gameCanvas.clientWidth;
     for (let i=0;i<n;i++){
       const size = 30 + Math.random()*50;
       const x = Math.random() * (w - size) + size/2;
@@ -165,6 +177,7 @@
   const drawTools = document.getElementById("drawTools");
   const brushSize = document.getElementById("brushSize");
   const brushColor = document.getElementById("brushColor");
+  const clearDrawings = document.getElementById("clearDrawings");
   let drawingMode = false, drawing = false, lastX=0,lastY=0;
 
   toggleDraw.addEventListener("click",()=>{
@@ -173,35 +186,41 @@
     toggleDraw.textContent = drawingMode ? "Disable Drawing Mode":"Enable Collision Drawing Mode";
   });
 
-  canvas.addEventListener("mousedown", e=>{
+  clearDrawings.addEventListener("click", ()=>{
+    dctx.clearRect(0,0, drawCanvas.width, drawCanvas.height);
+    lines = [];
+  });
+
+  drawCanvas.addEventListener("mousedown", e=>{
     if (!drawingMode) return;
     drawing = true; [lastX,lastY] = [e.offsetX,e.offsetY];
   });
-  canvas.addEventListener("mouseup", ()=> drawing=false);
-  canvas.addEventListener("mouseleave", ()=> drawing=false);
-  canvas.addEventListener("mousemove", e=>{
+  drawCanvas.addEventListener("mouseup", ()=> drawing=false);
+  drawCanvas.addEventListener("mouseleave", ()=> drawing=false);
+  drawCanvas.addEventListener("mousemove", e=>{
     if (!drawingMode || !drawing) return;
     const [x,y] = [e.offsetX,e.offsetY];
-    ctx.strokeStyle = brushColor.value;
-    ctx.lineWidth = brushSize.value;
-    ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); ctx.stroke();
+    dctx.strokeStyle = brushColor.value;
+    dctx.lineWidth = brushSize.value;
+    dctx.lineCap = "round";
+    dctx.beginPath(); dctx.moveTo(lastX,lastY); dctx.lineTo(x,y); dctx.stroke();
     lines.push({x1:lastX,y1:lastY,x2:x,y2:y});
     [lastX,lastY] = [x,y];
   });
 
+  // Game loop
   let last = performance.now(), fpsSmoothed = 60;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const w = gameCanvas.clientWidth, h = gameCanvas.clientHeight;
 
     for (let c of cubes) c.step(dt, w, h, lines);
 
-    ctx.clearRect(0,0, canvas.width, canvas.height);
-    drawBackground(ctx, w, h);
+    gctx.clearRect(0,0, gameCanvas.width, gameCanvas.height);
+    drawBackground(gctx, w, h);
     cubes.sort((a,b)=>a.y-b.y);
-    for (let c of cubes) c.draw(ctx);
+    for (let c of cubes) c.draw(gctx);
 
     const fps = 1/dt;
     fpsSmoothed = fpsSmoothed*0.92 + fps*0.08;
