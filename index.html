@@ -25,11 +25,8 @@
     background:linear-gradient(135deg,#06b6d4,#7c3aed);
     color:white; font-weight:600; cursor:pointer; border:none;
   }
-  #resetBtn {
-    background:linear-gradient(135deg,#f43f5e,#eab308);
-  }
   .credit {
-    position:absolute; left:50%; top:calc(50% + 70px); transform:translateX(-50%);
+    position:absolute; left:50%; top:calc(50% + 80px); transform:translateX(-50%);
     z-index:20; font-size:14px; color:rgba(255,255,255,0.75);
     text-align:center; max-width:80%;
   }
@@ -53,9 +50,15 @@
   <div class="center-controls">
     <div class="button-row">
       <button id="spawnBtn" class="center-btn">Spawn 10 Cubes</button>
-      <button id="resetBtn" class="center-btn">Reset Cubes</button>
+      <button id="resetBtn" class="center-btn" style="background:linear-gradient(135deg,#f43f5e,#eab308);">
+        Reset Cubes
+      </button>
+      <button id="toggleTumbleBtn" class="center-btn" style="background:linear-gradient(135deg,#22c55e,#16a34a);">
+        Disable Tumbling
+      </button>
     </div>
   </div>
+
   <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
 
   <div class="controls">
@@ -86,11 +89,13 @@
 
 <script>
 (() => {
+  // Canvases
   const gameCanvas = document.getElementById('gameCanvas');
   const gctx = gameCanvas.getContext('2d');
   const drawCanvas = document.getElementById('drawCanvas');
   const dctx = drawCanvas.getContext('2d');
 
+  // Offscreen buffer for render scaling
   const buffer = document.createElement("canvas");
   const bctx = buffer.getContext("2d");
 
@@ -98,11 +103,19 @@
   let cubeBaseSize = 50;
   let renderScale = 1.0;
   let bloomEnabled = false;
+  let tumblingEnabled = true;
 
+  // Controls
   document.getElementById("gravitySlider").addEventListener("input", e => GRAVITY = +e.target.value);
   document.getElementById("cubeSizeSlider").addEventListener("input", e => cubeBaseSize = +e.target.value);
   document.getElementById("renderScaleSlider").addEventListener("input", e => renderScale = +e.target.value / 100);
   document.getElementById("bloomToggle").addEventListener("change", e => bloomEnabled = e.target.checked);
+
+  const toggleTumbleBtn = document.getElementById('toggleTumbleBtn');
+  toggleTumbleBtn.addEventListener('click', () => {
+    tumblingEnabled = !tumblingEnabled;
+    toggleTumbleBtn.textContent = tumblingEnabled ? "Disable Tumbling" : "Enable Tumbling";
+  });
 
   function resize() {
     [gameCanvas, drawCanvas].forEach(cv=>{
@@ -113,22 +126,23 @@
   window.addEventListener('resize', resize);
   resize();
 
+  // Cube model
   class Cube {
     constructor(x,y,size,vx,vy,color,shape="cube"){
       this.x=x; this.y=y; this.size=size;
       this.vx=vx; this.vy=vy;
       this.color=color;
       this.shape=shape;
-      this.rotation = 0;
-      this.angularVel = (Math.random()-0.5)*2;
+      this.rotation=0;
+      this.angularVel=(Math.random()-0.5)*2;
     }
     step(dt, boundsW, boundsH, lines){
       this.vy += GRAVITY * dt;
       this.x += this.vx * dt;
       this.y += this.vy * dt;
-      this.rotation += this.angularVel * dt;
+      if (tumblingEnabled) this.rotation += this.angularVel * dt;
 
-      const r = this.size/2;
+      const r=this.size/2;
       if(this.x-r<0){this.x=r;this.vx*=-0.8;this.angularVel*=-1;}
       if(this.x+r>boundsW){this.x=boundsW-r;this.vx*=-0.8;this.angularVel*=-1;}
       if(this.y-r<0){this.y=r;this.vy*=-0.8;}
@@ -145,18 +159,18 @@
     draw(ctx){
       ctx.save();
       ctx.translate(this.x, this.y);
-      ctx.rotate(this.rotation);
+      if (tumblingEnabled) ctx.rotate(this.rotation);
       if(bloomEnabled){
         ctx.shadowBlur = 20;
         ctx.shadowColor = this.color;
       }
-      ctx.fillStyle = this.color;
-      const r = this.size/2;
-      if(this.shape === "cube"){
+      ctx.fillStyle=this.color;
+      const r=this.size/2;
+      if(this.shape==="cube"){
         ctx.fillRect(-r,-r,this.size,this.size);
-      } else if(this.shape === "circle"){
+      } else if(this.shape==="circle"){
         ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
-      } else if(this.shape === "triangle"){
+      } else if(this.shape==="triangle"){
         ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r,r); ctx.lineTo(-r,r); ctx.closePath(); ctx.fill();
       }
       ctx.restore();
@@ -177,22 +191,23 @@
   const palette=['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2'];
   let cubes=[];
   let lines=[];
-  let customRules = [];
+  let customRules=[];
 
   function spawnN(n){
     const w=gameCanvas.clientWidth;
     for(let i=0;i<n;i++){
-      const size=cubeBaseSize + (Math.random()-0.5)*10;
+      const size=cubeBaseSize+(Math.random()-0.5)*10;
       const x=Math.random()*(w-size)+size/2;
       const y=size/2+Math.random()*20;
       const vx=(Math.random()-0.5)*200;
       const vy=0;
-      let color = palette[Math.floor(Math.random()*palette.length)];
-      let shape = "cube";
+
+      let color=palette[Math.floor(Math.random()*palette.length)];
+      let shape="cube";
       for(let rule of customRules){
         if(Math.random()*100 < rule.chance.value){
-          color = rule.color.value;
-          shape = rule.shape.value;
+          color=rule.color.value;
+          shape=rule.shape.value;
         }
       }
       cubes.push(new Cube(x,y,size,vx,vy,color,shape));
@@ -204,12 +219,34 @@
   const resetBtn=document.getElementById('resetBtn');
   const countLabel=document.getElementById('countLabel');
   const fpsLabel=document.getElementById('fpsLabel');
+
   spawnBtn.addEventListener('click',()=>spawnN(10));
-  resetBtn.addEventListener('click',()=>{
-    cubes=[];
-    countLabel.textContent="Cubes: 0";
+  resetBtn.addEventListener('click',()=>{cubes=[]; countLabel.textContent=`Cubes: 0`;});
+
+  document.getElementById("addCustomBtn").addEventListener("click", () => {
+    const container=document.createElement("div");
+    container.style.marginBottom="6px";
+
+    const color=document.createElement("input");
+    color.type="color"; color.value="#ffffff";
+
+    const chance=document.createElement("input");
+    chance.type="range"; chance.min=0; chance.max=100; chance.value=50;
+
+    const shape=document.createElement("select");
+    ["cube","circle","triangle"].forEach(s=>{
+      const opt=document.createElement("option");
+      opt.value=s; opt.textContent=s;
+      shape.appendChild(opt);
+    });
+
+    container.append("Color:", color, " Chance:", chance, "% Shape:", shape);
+    document.getElementById("customList").appendChild(container);
+
+    customRules.push({color,chance,shape});
   });
 
+  // Drawing mode
   const toggleDraw=document.getElementById("toggleDraw");
   const drawTools=document.getElementById("drawTools");
   const brushSize=document.getElementById("brushSize");
@@ -245,29 +282,6 @@
     [lastX,lastY]=[x,y];
   });
 
-  document.getElementById("addCustomBtn").addEventListener("click", () => {
-    const container = document.createElement("div");
-    container.style.marginBottom = "6px";
-
-    const color = document.createElement("input");
-    color.type = "color"; color.value = "#ffffff";
-
-    const chance = document.createElement("input");
-    chance.type = "range"; chance.min = 0; chance.max = 100; chance.value = 50;
-
-    const shape = document.createElement("select");
-    ["cube","circle","triangle"].forEach(s=>{
-      const opt = document.createElement("option");
-      opt.value = s; opt.textContent = s;
-      shape.appendChild(opt);
-    });
-
-    container.append("Color:", color, " Chance:", chance, "% Shape:", shape);
-    document.getElementById("customList").appendChild(container);
-
-    customRules.push({color, chance, shape});
-  });
-
   function resolveCubeCollisions(){
     for(let i=0;i<cubes.length;i++){
       for(let j=i+1;j<cubes.length;j++){
@@ -301,8 +315,8 @@
       accumulator-=step;
     }
 
-    buffer.width = Math.floor(gameCanvas.width * renderScale);
-    buffer.height = Math.floor(gameCanvas.height * renderScale);
+    buffer.width=Math.floor(gameCanvas.width*renderScale);
+    buffer.height=Math.floor(gameCanvas.height*renderScale);
 
     bctx.setTransform(renderScale,0,0,renderScale,0,0);
     bctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
@@ -312,7 +326,7 @@
     bctx.setTransform(1,0,0,1,0,0);
 
     gctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
-    gctx.drawImage(buffer, 0,0,gameCanvas.width,gameCanvas.height);
+    gctx.drawImage(buffer,0,0,gameCanvas.width,gameCanvas.height);
 
     const fps=1/frameTime;
     fpsSmoothed=fpsSmoothed*0.9+fps*0.1;
