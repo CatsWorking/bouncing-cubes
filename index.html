@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bouncing Cubes — Sandbox</title>
+<title>bouncing cubes</title>
 <style>
   html,body { height:100%; margin:0; font-family: Inter, Roboto, Arial, sans-serif;
     background: #0f172a; color:#fff; }
@@ -17,7 +17,9 @@
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     z-index:20; display:flex; flex-direction:column; align-items:center; gap:10px;
   }
-  .button-row { display:flex; gap:10px; }
+  .button-row {
+    display:flex; gap:10px;
+  }
   .center-btn {
     padding:14px 22px; border-radius:12px;
     background:linear-gradient(135deg,#06b6d4,#7c3aed);
@@ -40,12 +42,48 @@
     background:rgba(0,0,0,0.5); padding:10px; border-radius:10px;
     display:flex; flex-direction:column; gap:8px;
   }
-  .custom-rule { margin-bottom:6px; }
-  .remove-btn {
-    margin-left:6px; padding:2px 6px; border:none; border-radius:4px;
-    background:#ef4444; color:white; cursor:pointer; font-size:11px;
-  }
   input[type="range"] { width:120px; }
+
+  /* Credits button + modal */
+  .credits-btn {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    color: white;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    z-index: 40;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    display:flex; justify-content:center; align-items:center;
+  }
+  .modal-content {
+    background: #1e293b;
+    color: white;
+    padding: 20px 30px;
+    border-radius: 12px;
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+  }
+  .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .close:hover { color: #f87171; }
 </style>
 </head>
 <body>
@@ -61,8 +99,7 @@
       </button>
     </div>
   </div>
-
-  <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online, visit https://sites.google.com/view/br33z3/home if you wanna see more tinkerinkeries [yes, tinkerinkeries]</div>
+  <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
 
   <div class="controls">
     <div id="countLabel">Cubes: 0</div>
@@ -71,10 +108,6 @@
     <label>Cube Size <input id="cubeSizeSlider" type="range" min="20" max="100" value="50"></label>
     <label>Render Scale <input id="renderScaleSlider" type="range" min="50" max="100" value="100"></label>
     <label><input type="checkbox" id="bloomToggle"> Bloom</label>
-    <hr>
-    <div><b>Custom Shapes</b></div>
-    <div id="customList"></div>
-    <button id="addCustomBtn">Add Custom (I)</button>
   </div>
 
   <canvas id="gameCanvas"></canvas>
@@ -88,6 +121,16 @@
       <button id="clearDrawings">Clear Drawings</button>
     </div>
   </div>
+
+  <!-- Credits -->
+  <button id="creditsBtn" class="credits-btn">Credits</button>
+  <div id="creditsModal" class="modal">
+    <div class="modal-content">
+      <span id="closeCredits" class="close">&times;</span>
+      <h2>Credits</h2>
+      <p>thanks JJ and MLK for testing out this stress test</p>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -97,8 +140,6 @@
   const gctx = gameCanvas.getContext('2d');
   const drawCanvas = document.getElementById('drawCanvas');
   const dctx = drawCanvas.getContext('2d');
-
-  // Offscreen buffer for render scaling
   const buffer = document.createElement("canvas");
   const bctx = buffer.getContext("2d");
 
@@ -114,14 +155,6 @@
   document.getElementById("renderScaleSlider").addEventListener("input", e => renderScale = +e.target.value / 100);
   document.getElementById("bloomToggle").addEventListener("change", e => bloomEnabled = e.target.checked);
 
-  const toggleTumbleBtn = document.getElementById('toggleTumbleBtn');
-  toggleTumbleBtn.addEventListener('click', () => toggleTumbling());
-
-  function toggleTumbling() {
-    tumblingEnabled = !tumblingEnabled;
-    toggleTumbleBtn.textContent = tumblingEnabled ? "Disable Tumbling (O)" : "Enable Tumbling (O)";
-  }
-
   function resize() {
     [gameCanvas, drawCanvas].forEach(cv=>{
       cv.width = cv.clientWidth;
@@ -131,15 +164,13 @@
   window.addEventListener('resize', resize);
   resize();
 
-  // Cube model
   class Cube {
-    constructor(x,y,size,vx,vy,color,shape="cube"){
+    constructor(x,y,size,vx,vy,color){
       this.x=x; this.y=y; this.size=size;
       this.vx=vx; this.vy=vy;
       this.color=color;
-      this.shape=shape;
       this.rotation=0;
-      this.angularVel=(Math.random()-0.5)*2;
+      this.angularVel=(Math.random()-0.5)*6;
     }
     step(dt, boundsW, boundsH, lines){
       this.vy += GRAVITY * dt;
@@ -147,37 +178,29 @@
       this.y += this.vy * dt;
       if (tumblingEnabled) this.rotation += this.angularVel * dt;
 
-      const r=this.size/2;
-      if(this.x-r<0){this.x=r;this.vx*=-0.8;this.angularVel*=-1;}
-      if(this.x+r>boundsW){this.x=boundsW-r;this.vx*=-0.8;this.angularVel*=-1;}
+      const r = this.size/2;
+      if(this.x-r<0){this.x=r;this.vx*=-0.8;}
+      if(this.x+r>boundsW){this.x=boundsW-r;this.vx*=-0.8;}
       if(this.y-r<0){this.y=r;this.vy*=-0.8;}
-      if(this.y+r>boundsH){this.y=boundsH-r;this.vy*=-0.7;this.vx*=0.98;this.angularVel*=0.95;}
+      if(this.y+r>boundsH){this.y=boundsH-r;this.vy*=-0.7;this.vx*=0.98;}
 
       for(let line of lines){
         if(lineCollision(this,line)){
           this.vy = -this.vy*0.7;
           this.vx *= 0.8;
-          this.angularVel += (Math.random()-0.5)*4;
         }
       }
     }
     draw(ctx){
       ctx.save();
-      ctx.translate(this.x, this.y);
+      ctx.translate(this.x,this.y);
       if (tumblingEnabled) ctx.rotate(this.rotation);
       if(bloomEnabled){
         ctx.shadowBlur = 20;
         ctx.shadowColor = this.color;
       }
-      ctx.fillStyle=this.color;
-      const r=this.size/2;
-      if(this.shape==="cube"){
-        ctx.fillRect(-r,-r,this.size,this.size);
-      } else if(this.shape==="circle"){
-        ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
-      } else if(this.shape==="triangle"){
-        ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r,r); ctx.lineTo(-r,r); ctx.closePath(); ctx.fill();
-      }
+      ctx.fillStyle = this.color;
+      ctx.fillRect(-this.size/2,-this.size/2,this.size,this.size);
       ctx.restore();
     }
   }
@@ -196,76 +219,32 @@
   const palette=['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2'];
   let cubes=[];
   let lines=[];
-  let customRules=[];
 
   function spawnN(n){
     const w=gameCanvas.clientWidth;
     for(let i=0;i<n;i++){
-      const size=cubeBaseSize+(Math.random()-0.5)*10;
+      const size=cubeBaseSize + (Math.random()-0.5)*10;
       const x=Math.random()*(w-size)+size/2;
       const y=size/2+Math.random()*20;
       const vx=(Math.random()-0.5)*200;
       const vy=0;
-
-      let color=palette[Math.floor(Math.random()*palette.length)];
-      let shape="cube";
-      for(let rule of customRules){
-        if(Math.random()*100 < rule.chance.value){
-          color=rule.color.value;
-          shape=rule.shape.value;
-        }
-      }
-      cubes.push(new Cube(x,y,size,vx,vy,color,shape));
+      const color=palette[Math.floor(Math.random()*palette.length)];
+      cubes.push(new Cube(x,y,size,vx,vy,color));
     }
     countLabel.textContent=`Cubes: ${cubes.length}`;
   }
 
   const spawnBtn=document.getElementById('spawnBtn');
   const resetBtn=document.getElementById('resetBtn');
+  const toggleTumbleBtn=document.getElementById('toggleTumbleBtn');
   const countLabel=document.getElementById('countLabel');
   const fpsLabel=document.getElementById('fpsLabel');
-
   spawnBtn.addEventListener('click',()=>spawnN(10));
-  resetBtn.addEventListener('click',()=>resetCubes());
-
-  function resetCubes() {
-    cubes=[]; countLabel.textContent=`Cubes: 0`;
-  }
-
-  const addCustomBtn=document.getElementById("addCustomBtn");
-  addCustomBtn.addEventListener("click",()=>addCustomRule());
-
-  function addCustomRule() {
-    const container=document.createElement("div");
-    container.className="custom-rule";
-
-    const color=document.createElement("input");
-    color.type="color"; color.value="#ffffff";
-
-    const chance=document.createElement("input");
-    chance.type="range"; chance.min=0; chance.max=100; chance.value=50;
-
-    const shape=document.createElement("select");
-    ["cube","circle","triangle"].forEach(s=>{
-      const opt=document.createElement("option");
-      opt.value=s; opt.textContent=s;
-      shape.appendChild(opt);
-    });
-
-    const remove=document.createElement("button");
-    remove.textContent="X";
-    remove.className="remove-btn";
-    remove.onclick=()=> {
-      customRules = customRules.filter(r=>r.container!==container);
-      container.remove();
-    };
-
-    container.append("Color:", color, " Chance:", chance, "% Shape:", shape, remove);
-    document.getElementById("customList").appendChild(container);
-
-    const rule={color,chance,shape,container};
-    customRules.push(rule);
-  }
+  resetBtn.addEventListener('click',()=>{cubes=[];countLabel.textContent=`Cubes: 0`;});
+  toggleTumbleBtn.addEventListener('click',()=>{
+    tumblingEnabled=!tumblingEnabled;
+    toggleTumbleBtn.textContent = tumblingEnabled?"Disable Tumbling (O)":"Enable Tumbling (O)";
+  });
 
   // Drawing mode
   const toggleDraw=document.getElementById("toggleDraw");
@@ -280,12 +259,10 @@
     drawTools.style.display=drawingMode?"flex":"none";
     toggleDraw.textContent=drawingMode?"Disable Drawing Mode":"Enable Collision Drawing Mode";
   });
-
   clearDrawings.addEventListener("click",()=>{
     dctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
     lines=[];
   });
-
   drawCanvas.addEventListener("mousedown",e=>{
     if(!drawingMode)return;
     drawing=true;[lastX,lastY]=[e.offsetX,e.offsetY];
@@ -303,6 +280,7 @@
     [lastX,lastY]=[x,y];
   });
 
+  // Cube-to-cube collisions
   function resolveCubeCollisions(){
     for(let i=0;i<cubes.length;i++){
       for(let j=i+1;j<cubes.length;j++){
@@ -325,6 +303,7 @@
     }
   }
 
+  // Game loop
   let last=performance.now(),fpsSmoothed=60,accumulator=0;
   function loop(now){
     const frameTime=(now-last)/1000; last=now;
@@ -336,9 +315,8 @@
       accumulator-=step;
     }
 
-    buffer.width=Math.floor(gameCanvas.width*renderScale);
-    buffer.height=Math.floor(gameCanvas.height*renderScale);
-
+    buffer.width = Math.floor(gameCanvas.width * renderScale);
+    buffer.height = Math.floor(gameCanvas.height * renderScale);
     bctx.setTransform(renderScale,0,0,renderScale,0,0);
     bctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
 
@@ -347,7 +325,7 @@
     bctx.setTransform(1,0,0,1,0,0);
 
     gctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
-    gctx.drawImage(buffer,0,0,gameCanvas.width,gameCanvas.height);
+    gctx.drawImage(buffer, 0,0,gameCanvas.width,gameCanvas.height);
 
     const fps=1/frameTime;
     fpsSmoothed=fpsSmoothed*0.9+fps*0.1;
@@ -362,14 +340,19 @@
     ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
   }
 
-  // Keyboard shortcuts
-  document.addEventListener("keydown",e=>{
-    if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"||e.target.tagName==="TEXTAREA") return;
-    switch(e.key.toUpperCase()){
-      case "P": spawnN(10); break;
-      case "R": resetCubes(); break;
-      case "O": toggleTumbling(); break;
-      case "I": addCustomRule(); break;
+  // Credits modal
+  const creditsBtn = document.getElementById("creditsBtn");
+  const creditsModal = document.getElementById("creditsModal");
+  const closeCredits = document.getElementById("closeCredits");
+  creditsBtn.addEventListener("click", () => {
+    creditsModal.style.display = "flex";
+  });
+  closeCredits.addEventListener("click", () => {
+    creditsModal.style.display = "none";
+  });
+  window.addEventListener("click", (e) => {
+    if (e.target === creditsModal) {
+      creditsModal.style.display = "none";
     }
   });
 })();
