@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>bouncing cubes</title>
+<title>Bouncing Cubes — Sandbox</title>
 <style>
   html,body { height:100%; margin:0; font-family: Inter, Roboto, Arial, sans-serif;
     background: #0f172a; color:#fff; }
@@ -84,12 +84,6 @@
     cursor: pointer;
   }
   .close:hover { color: #f87171; }
-
-  .palette { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
-  .color-swatch {
-    width:22px; height:22px; border-radius:4px; cursor:pointer;
-    border:2px solid rgba(255,255,255,0.4);
-  }
 </style>
 </head>
 <body>
@@ -103,9 +97,6 @@
       <button id="toggleTumbleBtn" class="center-btn" style="background:linear-gradient(135deg,#22c55e,#16a34a);">
         Disable Tumbling (O)
       </button>
-      <button id="addColorBtn" class="center-btn" style="background:linear-gradient(135deg,#ec4899,#f97316);">
-        Add Custom Color (I)
-      </button>
     </div>
   </div>
   <div class="credit">made by sushi [thx jj for the nickname] or br33z3 as i call myself online</div>
@@ -117,10 +108,6 @@
     <label>Cube Size <input id="cubeSizeSlider" type="range" min="20" max="100" value="50"></label>
     <label>Render Scale <input id="renderScaleSlider" type="range" min="50" max="100" value="100"></label>
     <label><input type="checkbox" id="bloomToggle"> Bloom</label>
-    <div id="paletteContainer">
-      <div>Palette (click to remove):</div>
-      <div id="paletteDisplay" class="palette"></div>
-    </div>
   </div>
 
   <canvas id="gameCanvas"></canvas>
@@ -141,14 +128,14 @@
     <div class="modal-content">
       <span id="closeCredits" class="close">&times;</span>
       <h2>Credits</h2>
-      <p>PUTTING NAMES LATER!!!</p>
+      <p>thanks JJ and MLK for testing out the game and beta updates</p>
     </div>
   </div>
 </div>
 
 <script>
 (() => {
-  // Canvas setup
+  // Canvases
   const gameCanvas = document.getElementById('gameCanvas');
   const gctx = gameCanvas.getContext('2d');
   const drawCanvas = document.getElementById('drawCanvas');
@@ -162,6 +149,7 @@
   let bloomEnabled = false;
   let tumblingEnabled = true;
 
+  // Controls
   document.getElementById("gravitySlider").addEventListener("input", e => GRAVITY = +e.target.value);
   document.getElementById("cubeSizeSlider").addEventListener("input", e => cubeBaseSize = +e.target.value);
   document.getElementById("renderScaleSlider").addEventListener("input", e => renderScale = +e.target.value / 100);
@@ -176,7 +164,6 @@
   window.addEventListener('resize', resize);
   resize();
 
-  // Cube class
   class Cube {
     constructor(x,y,size,vx,vy,color){
       this.x=x; this.y=y; this.size=size;
@@ -229,22 +216,7 @@
     return distSq<r*r;
   }
 
-  // Palette system
-  let palette=['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2'];
-  function renderPalette(){
-    const paletteDisplay=document.getElementById("paletteDisplay");
-    paletteDisplay.innerHTML="";
-    palette.forEach((col,i)=>{
-      const swatch=document.createElement("div");
-      swatch.className="color-swatch";
-      swatch.style.background=col;
-      swatch.title="Click to remove";
-      swatch.onclick=()=>{palette.splice(i,1);renderPalette();};
-      paletteDisplay.appendChild(swatch);
-    });
-  }
-  renderPalette();
-
+  const palette=['#ff5f6d','#ffc371','#47e495','#00c6ff','#7f00ff','#ff61d2'];
   let cubes=[];
   let lines=[];
 
@@ -265,39 +237,13 @@
   const spawnBtn=document.getElementById('spawnBtn');
   const resetBtn=document.getElementById('resetBtn');
   const toggleTumbleBtn=document.getElementById('toggleTumbleBtn');
-  const addColorBtn=document.getElementById('addColorBtn');
   const countLabel=document.getElementById('countLabel');
   const fpsLabel=document.getElementById('fpsLabel');
-
   spawnBtn.addEventListener('click',()=>spawnN(10));
   resetBtn.addEventListener('click',()=>{cubes=[];countLabel.textContent=`Cubes: 0`;});
   toggleTumbleBtn.addEventListener('click',()=>{
     tumblingEnabled=!tumblingEnabled;
     toggleTumbleBtn.textContent = tumblingEnabled?"Disable Tumbling (O)":"Enable Tumbling (O)";
-  });
-  addColorBtn.addEventListener('click',()=>{
-    const newColor=prompt("Enter a hex color (e.g. #ff0000):");
-    if(newColor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(newColor)){
-      palette.push(newColor);
-      renderPalette();
-    }
-  });
-
-  // Keyboard shortcuts
-  document.addEventListener("keydown", (e)=>{
-    if(e.key.toLowerCase()==="p"){spawnN(10);}
-    if(e.key.toLowerCase()==="r"){cubes=[];countLabel.textContent=`Cubes: 0`;}
-    if(e.key.toLowerCase()==="o"){
-      tumblingEnabled=!tumblingEnabled;
-      toggleTumbleBtn.textContent = tumblingEnabled?"Disable Tumbling (O)":"Enable Tumbling (O)";
-    }
-    if(e.key.toLowerCase()==="i"){
-      const newColor=prompt("Enter a hex color (e.g. #00ff00):");
-      if(newColor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(newColor)){
-        palette.push(newColor);
-        renderPalette();
-      }
-    }
   });
 
   // Drawing mode
@@ -391,4 +337,25 @@
   function drawBackground(ctx,w,h){
     const g=ctx.createLinearGradient(0,0,0,h);
     g.addColorStop(0,'#0f172a'); g.addColorStop(1,'#020617');
-    ctx.fillStyle=g; ctx.fillRect(0,0,w,h
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  }
+
+  // Credits modal
+  const creditsBtn = document.getElementById("creditsBtn");
+  const creditsModal = document.getElementById("creditsModal");
+  const closeCredits = document.getElementById("closeCredits");
+  creditsBtn.addEventListener("click", () => {
+    creditsModal.style.display = "flex";
+  });
+  closeCredits.addEventListener("click", () => {
+    creditsModal.style.display = "none";
+  });
+  window.addEventListener("click", (e) => {
+    if (e.target === creditsModal) {
+      creditsModal.style.display = "none";
+    }
+  });
+})();
+</script>
+</body>
+</html>
